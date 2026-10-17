@@ -1,26 +1,19 @@
 const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
-const crypto = require('node:crypto');
-const rooms = new Map();
-function fresh(game) { return {board:Array(game==='connect4'?42:9).fill(null),turn:0,winner:null,moves:{},scores:[0,0],round:1}; }
-function publicRoom(r,token) { const s={...r.state,moves:undefined}; if(r.game==='rps') {s.played=r.players.map(p=>!!r.state.moves[p.token]);if(r.state.winner!==null)s.revealed=r.players.map(p=>r.state.moves[p.token]);}return {code:r.code,game:r.game,players:r.players.map(p=>({name:p.name})),you:r.players.findIndex(p=>p.token===token),...s}; }
-function send(r) { r.updated=Date.now();for(const [res,token] of r.clients)res.write('data: '+JSON.stringify(publicRoom(r,token))+'\n\n'); }
-function win(board,w) {const h=board.length/w;for(let y=0;y<h;y++)for(let x=0;x<w;x++)for(const [dx,dy]of [[1,0],[0,1],[1,1],[1,-1]]){const p=board[y*w+x];if(p===null)continue;const n=w===7?4:3;if(Array.from({length:n},(_,i)=>{let a=x+dx*i,b=y+dy*i;return a>=0&&a<w&&b>=0&&b<h&&board[b*w+a]===p;}).every(Boolean))return p;}return board.every(v=>v!==null)?'draw':null;}
-const server=http.createServer(async(req,res)=>{const url=new URL(req.url,'http://localhost');const json=(status,data)=>{res.writeHead(status,{'Content-Type':'application/json'});res.end(JSON.stringify(data));};
-if(url.pathname.startsWith('/api/')){try{
-if(req.method==='GET'&&url.pathname==='/api/events'){const r=rooms.get(url.searchParams.get('code')),token=url.searchParams.get('token');if(!r||!r.players.some(p=>p.token===token))return json(404,{error:'Room not found. Create or join a room first.'});res.writeHead(200,{'Content-Type':'text/event-stream','Cache-Control':'no-cache','Connection':'keep-alive'});r.clients.set(res,token);res.write('data: '+JSON.stringify(publicRoom(r,token))+'\n\n');const heartbeat=setInterval(()=>res.write(': ping\n\n'),20000);req.on('close',()=>{clearInterval(heartbeat);r.clients.delete(res);});return;}
-if(req.method!=='POST')return json(405,{error:'Method not allowed'});let raw='';for await(const c of req){raw+=c;if(raw.length>4096)return json(413,{error:'Request too large'});}const b=JSON.parse(raw||'{}');
-if(url.pathname==='/api/create'){if(!['ttt','connect4','rps'].includes(b.game))throw Error('Unknown game');if(rooms.size>=2000)throw Error('Arcade is busy. Try again later.');let code;do{code=crypto.randomBytes(3).toString('hex').toUpperCase();}while(rooms.has(code));const token=crypto.randomUUID();const r={code,game:b.game,players:[{name:String(b.name||'Player 1').slice(0,20),token}],state:fresh(b.game),clients:new Map(),updated:Date.now()};rooms.set(code,r);return json(200,{token,...publicRoom(r,token)});}
-const r=rooms.get(String(b.code||'').toUpperCase());if(!r)throw Error('Room not found. Check the six-character code.');
-if(url.pathname==='/api/join'){if(r.players.length>=2)throw Error('This room is full. Create another room.');const token=crypto.randomUUID();r.players.push({name:String(b.name||'Player 2').slice(0,20),token});send(r);return json(200,{token,...publicRoom(r,token)});}
-const me=r.players.findIndex(p=>p.token===b.token);if(me<0)throw Error('Please join this room first.');const s=r.state;
-if(url.pathname==='/api/reset'){if(s.winner===null)throw Error('Finish this round before starting another.');const scores=s.scores,round=s.round+1;r.state={...fresh(r.game),scores,round};send(r);return json(200,{ok:true});}
-if(url.pathname!=='/api/move')return json(404,{error:'Not found'});if(r.players.length<2)throw Error('Waiting for another player.');if(s.winner!==null)throw Error('Round finished. Play again!');
-if(r.game==='rps'){if(!['rock','paper','scissors'].includes(b.move))throw Error('Invalid choice');if(s.moves[b.token])throw Error('Choice already locked in.');s.moves[b.token]=b.move;if(Object.keys(s.moves).length===2){const [a,c]=r.players.map(p=>s.moves[p.token]);s.winner=a===c?'draw':({rock:'scissors',paper:'rock',scissors:'paper'}[a]===c?0:1);}}
-else{if(s.turn!==me)throw Error('Wait for your turn.');let i=Number(b.move);if(!Number.isInteger(i))throw Error('Invalid move');if(r.game==='connect4'){if(i<0||i>6)throw Error('Invalid column');let row=5;while(row>=0&&s.board[row*7+i]!==null)row--;if(row<0)throw Error('Column is full');i=row*7+i;}if(i<0||i>=s.board.length||s.board[i]!==null)throw Error('Choose an empty space.');s.board[i]=me;s.winner=win(s.board,r.game==='connect4'?7:3);s.turn=1-me;}if(typeof s.winner==='number')s.scores[s.winner]++;send(r);return json(200,{ok:true});
-}catch(e){return json(400,{error:e.message});}}
-const routes={'/':'index.html','/app.js':'app.js','/style.css':'style.css'};const file=routes[url.pathname];if(!file){res.writeHead(404);return res.end('Not found');}res.setHeader('Content-Type',file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html');fs.createReadStream(path.join(__dirname,'public',file)).pipe(res);});
-const cleanup=setInterval(()=>{for(const[c,r]of rooms)if(!r.clients.size&&Date.now()-r.updated>86400000)rooms.delete(c);},60000);cleanup.unref();
-if(require.main===module)server.listen(process.env.PORT||3000,'0.0.0.0',()=>console.log('Playroom listening on port '+(process.env.PORT||3000)));
-module.exports={server,win};
+
+// Optional local development server. The games also run directly on GitHub Pages.
+const routes = {'/':'index.html', '/app.js':'app.js', '/style.css':'style.css'};
+const server = http.createServer((req, res) => {
+  const file = routes[new URL(req.url, 'http://localhost').pathname];
+  if (!file) {
+    res.writeHead(404);
+    return res.end('Not found');
+  }
+  res.setHeader('Content-Type', file.endsWith('.js') ? 'text/javascript' : file.endsWith('.css') ? 'text/css' : 'text/html');
+  fs.createReadStream(path.join(__dirname, 'public', file)).pipe(res);
+});
+if (require.main === module) {
+  server.listen(process.env.PORT || 3000, '0.0.0.0', () => console.log('Playroom listening on port ' + (process.env.PORT || 3000)));
+}
+module.exports = {server};
