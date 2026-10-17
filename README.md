@@ -31,4 +31,4 @@ Typography uses optional Google Fonts with local sans-serif fallbacks; gameplay 
 
 The `gh-pages` branch contains the static site. In GitHub repository Settings → Pages, choose Deploy from a branch, then `gh-pages` and `/ (root)`. The site will be at https://farisl5.github.io/my-gam-site/. All five solo games work on Pages; the multiplayer games display an explanation because Pages does not run the Node.js server.
 
-To refresh the static branch after edits, commit changes on the main development branch, then run `git subtree split --prefix public -b pages-update` and `git push origin pages-update:gh-pages`. Delete the temporary local branch after pushing.
+When refreshing the static site, publish the updated contents of `public/` to the root of `gh-pages`, preserving that branch’s history.
