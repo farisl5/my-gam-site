@@ -26,3 +26,9 @@ Deploy this directory to a host that runs a persistent Node.js HTTP service. Use
 This is a single-server implementation: rooms and scores are stored in memory, disappear on restart, and idle rooms expire after 24 hours. Use one server instance; shared durable room storage and production abuse controls would be needed before scaling to multiple instances. No accounts, credentials, or database are required. Public deployment is separate from running in the development environment.
 
 Typography uses optional Google Fonts with local sans-serif fallbacks; gameplay has no external service dependencies.
+
+## GitHub Pages
+
+The `gh-pages` branch contains the static site. In GitHub repository Settings → Pages, choose Deploy from a branch, then `gh-pages` and `/ (root)`. The site will be at https://farisl5.github.io/my-gam-site/. All five solo games work on Pages; the multiplayer games display an explanation because Pages does not run the Node.js server.
+
+To refresh the static branch after edits, commit changes on the main development branch, then run `git subtree split --prefix public -b pages-update` and `git push origin pages-update:gh-pages`. Delete the temporary local branch after pushing.
