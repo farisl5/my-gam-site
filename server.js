@@ -3,7 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 
 // Optional local development server. The games also run directly on GitHub Pages.
-const routes = {'/':'index.html', '/app.js':'app.js', '/style.css':'style.css'};
+const routes = {'/':'index.html', '/app.js':'app.js', '/sports.js':'sports.js', '/style.css':'style.css'};
 const server = http.createServer((req, res) => {
   const file = routes[new URL(req.url, 'http://localhost').pathname];
   if (!file) {

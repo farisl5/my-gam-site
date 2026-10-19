@@ -1,6 +1,6 @@
 # Playroom
 
-A responsive arcade with five solo browser games: Snake, Memory Match, Quick Reflex, Minesweeper, and Target Rush. No accounts, game server, database, or application dependencies are needed.
+A responsive arcade with seven solo browser games: Touchdown Rush (American football), Soccer Shootout, Snake, Memory Match, Quick Reflex, Minesweeper, and Target Rush. No accounts, game server, database, or application dependencies are needed.
 
 ## GitHub Pages
 

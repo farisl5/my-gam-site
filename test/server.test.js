@@ -8,7 +8,7 @@ before(async () => {
 });
 after(() => new Promise(resolve => server.close(resolve)));
 test('serves the arcade and its assets', async () => {
-  for (const route of ['/', '/style.css', '/app.js']) {
+  for (const route of ['/', '/style.css', '/app.js', '/sports.js']) {
     const response = await fetch(base + route);
     assert.equal(response.status, 200);
     assert.ok((await response.text()).length > 0);
